@@ -5,6 +5,8 @@ const dotenv = require('dotenv');
 const classifyRoutes = require('./routes/classify.routes');
 const historyRoutes = require('./routes/history.routes');
 const disposalRoutes = require('./routes/disposal.routes');
+const statsRoutes = require('./routes/stats.routes');
+const uploadRoutes = require('./routes/upload.routes');
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
 
 dotenv.config();
@@ -18,9 +20,11 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'waste-backend' });
 });
 
-app.use('/api/classify', classifyRoutes);
-app.use('/api/history', historyRoutes);
+app.use('/api/classify-waste', classifyRoutes);
+app.use('/api/upload-image', uploadRoutes);
 app.use('/api/disposal-methods', disposalRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
