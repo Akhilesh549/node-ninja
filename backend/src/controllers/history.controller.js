@@ -1,4 +1,4 @@
-const { get, ref, push, set } = require('../config/firebase');
+const { database, get, ref, push, set } = require('../config/firebase');
 
 const getHistory = async (req, res) => {
   try {
@@ -24,7 +24,21 @@ const getHistory = async (req, res) => {
     const items = Object.entries(data).map(([id, value]) => ({
       id,
       ...value
-    }));
+    })).map((item) => {
+      const category = String(item.category || '').toLowerCase();
+      const recyclable = typeof item.recyclable === 'boolean'
+        ? item.recyclable
+        : ['plastic', 'metal', 'glass'].includes(category);
+
+      return {
+        ...item,
+        category: item.category || 'Organic',
+        recyclable,
+        bin: item.bin || (recyclable ? 'recyclable' : 'organic'),
+        points: Number(item.points || 0),
+        carbonCredits: Number(item.carbonCredits || 0)
+      };
+    });
     
     // Sort by date descending
     items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
