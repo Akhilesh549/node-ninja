@@ -773,18 +773,12 @@ function Dashboard({ onLogout }) {
         )}
 
         {currentTab === "scan" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px", alignItems: "start" }}>
-            <section className="glass-panel lift-card" style={{
-              borderRadius: "28px",
-              padding: "24px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", alignItems: "center", marginBottom: "18px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "14px", alignItems: "start" }}>
+            <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: THEME.muted }}>
-                    Scan studio
-                  </div>
-                  <div style={{ fontSize: "24px", fontWeight: 800, color: THEME.text }}>Camera or Upload</div>
-                  <div style={{ color: THEME.muted, marginTop: "6px" }}>Use the camera or upload an image from your device.</div>
+                  <div style={{ fontSize: "20px", fontWeight: 800 }}>Scan controls</div>
+                  <div style={{ color: THEME.muted, marginTop: "6px" }}>Choose camera or upload, then classify.</div>
                 </div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <button
@@ -795,8 +789,8 @@ function Dashboard({ onLogout }) {
                       cursor: "pointer",
                       padding: "10px 16px",
                       borderRadius: "999px",
-                      background: scanMode === "camera" ? "linear-gradient(135deg, #27ae60, #2ecc71)" : "#eef2f7",
-                      color: scanMode === "camera" ? "#fff" : "#102033"
+                      background: scanMode === "camera" ? "linear-gradient(135deg, #27ae60, #2ecc71)" : "rgba(255,255,255,0.08)",
+                      color: "#fff"
                     }}
                   >
                     📷 Camera
@@ -809,8 +803,8 @@ function Dashboard({ onLogout }) {
                       cursor: "pointer",
                       padding: "10px 16px",
                       borderRadius: "999px",
-                      background: scanMode === "upload" ? "linear-gradient(135deg, #102033, #314766)" : "#eef2f7",
-                      color: scanMode === "upload" ? "#fff" : "#102033"
+                      background: scanMode === "upload" ? "linear-gradient(135deg, #102033, #314766)" : "rgba(255,255,255,0.08)",
+                      color: "#fff"
                     }}
                   >
                     🖼 Upload
@@ -832,64 +826,38 @@ function Dashboard({ onLogout }) {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "18px" }}>
-                <div style={{
-                  padding: "14px 16px",
-                  borderRadius: "18px",
-                  background: "rgba(46, 204, 113, 0.08)",
-                  border: "1px solid rgba(46, 204, 113, 0.12)"
-                }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginTop: "18px" }}>
+                <div style={{ padding: "14px 16px", borderRadius: "18px", background: "rgba(46, 204, 113, 0.08)", border: "1px solid rgba(46, 204, 113, 0.12)" }}>
                   <div style={{ fontSize: "12px", color: THEME.muted }}>Confidence</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>
-                    {primaryScan ? `${Math.round((primaryScan.confidence || 0) * 100)}%` : "—"}
-                  </div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>{primaryScan ? `${Math.round((primaryScan.confidence || 0) * 100)}%` : "—"}</div>
                 </div>
-                <div style={{
-                  padding: "14px 16px",
-                  borderRadius: "18px",
-                  background: "rgba(45, 156, 219, 0.08)",
-                  border: "1px solid rgba(45, 156, 219, 0.12)"
-                }}>
+                <div style={{ padding: "14px 16px", borderRadius: "18px", background: "rgba(45, 156, 219, 0.08)", border: "1px solid rgba(45, 156, 219, 0.12)" }}>
                   <div style={{ fontSize: "12px", color: THEME.muted }}>Success rate</div>
                   <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>{successRate}%</div>
                 </div>
-                <div style={{
-                  padding: "14px 16px",
-                  borderRadius: "18px",
-                  background: "rgba(241, 196, 15, 0.09)",
-                  border: "1px solid rgba(241, 196, 15, 0.12)"
-                }}>
+                <div style={{ padding: "14px 16px", borderRadius: "18px", background: "rgba(241, 196, 15, 0.09)", border: "1px solid rgba(241, 196, 15, 0.12)" }}>
                   <div style={{ fontSize: "12px", color: THEME.muted }}>Badges</div>
                   <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>{badgeCount}</div>
                 </div>
               </div>
 
               <div style={{
+                marginTop: "18px",
                 position: "relative",
                 width: "100%",
-                aspectRatio: "4 / 3",
-                borderRadius: "24px",
+                aspectRatio: "16 / 10",
+                maxHeight: "300px",
+                borderRadius: "22px",
                 overflow: "hidden",
                 background: scanMode === "camera" ? "#07101d" : "#f2f5fa",
-                border: "2px solid rgba(148, 163, 184, 0.22)",
-                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4)"
+                border: "1px solid rgba(148, 163, 184, 0.16)"
               }}>
                 {scanMode === "camera" && (
                   <div style={{
                     position: "absolute",
                     inset: 0,
-                    background: "linear-gradient(180deg, rgba(46, 204, 113, 0.02), rgba(45, 156, 219, 0.08))"
-                  }}>
-                    <div style={{
-                      position: "absolute",
-                      top: "16px",
-                      left: "16px",
-                      right: "16px",
-                      height: "2px",
-                      background: "linear-gradient(90deg, transparent, rgba(46, 204, 113, 0.9), transparent)",
-                      animation: "shimmer 3.4s linear infinite"
-                    }} />
-                  </div>
+                    background: "linear-gradient(180deg, rgba(46, 204, 113, 0.02), rgba(45, 156, 219, 0.06))"
+                  }} />
                 )}
 
                 <video
@@ -906,26 +874,14 @@ function Dashboard({ onLogout }) {
                 />
 
                 {scanMode === "upload" && previewUrl && (
-                  <div style={{
-                    ...previewStyle,
-                    width: "100%",
-                    height: "100%"
-                  }} />
+                  <div style={{ ...previewStyle, width: "100%", height: "100%" }} />
                 )}
 
                 {scanMode === "camera" && !isCameraOn && (
-                  <div style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "grid",
-                    placeItems: "center",
-                    color: "#fff",
-                    textAlign: "center",
-                    padding: "20px"
-                  }}>
+                  <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#fff", textAlign: "center", padding: "20px" }}>
                     <div>
-                      <div style={{ fontSize: "64px" }}>📹</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, marginTop: "10px" }}>Camera is off</div>
+                      <div style={{ fontSize: "58px" }}>📹</div>
+                      <div style={{ fontSize: "18px", fontWeight: 700, marginTop: "8px" }}>Camera is off</div>
                       <div style={{ opacity: 0.78, marginTop: "6px" }}>Start the camera to capture an item.</div>
                     </div>
                   </div>
@@ -934,8 +890,8 @@ function Dashboard({ onLogout }) {
                 <div style={{
                   position: "absolute",
                   inset: "14px",
-                  borderRadius: "18px",
-                  border: "2px solid rgba(45, 156, 219, 0.7)",
+                  borderRadius: "16px",
+                  border: "2px solid rgba(45, 156, 219, 0.55)",
                   pointerEvents: "none"
                 }} />
 
@@ -973,13 +929,7 @@ function Dashboard({ onLogout }) {
               </div>
 
               <canvas ref={canvasRef} style={{ display: "none" }} />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: "none" }}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
 
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "18px" }}>
                 <button
@@ -1031,57 +981,28 @@ function Dashboard({ onLogout }) {
               </div>
 
               {cameraError && (
-                <div style={{
-                  marginTop: "16px",
-                  padding: "12px 14px",
-                  borderRadius: "14px",
-                  background: "#ffe8e8",
-                  color: "#c0392b"
-                }}>
+                <div style={{ marginTop: "16px", padding: "12px 14px", borderRadius: "14px", background: "#ffe8e8", color: "#c0392b" }}>
                   {cameraError}
                 </div>
               )}
 
               {error && (
-                <div style={{
-                  marginTop: "16px",
-                  padding: "12px 14px",
-                  borderRadius: "14px",
-                  background: "#ffe8e8",
-                  color: "#c0392b"
-                }}>
+                <div style={{ marginTop: "16px", padding: "12px 14px", borderRadius: "14px", background: "#ffe8e8", color: "#c0392b" }}>
                   {error}
                 </div>
               )}
             </section>
 
-            <aside className="glass-panel lift-card" style={{
-              background: "linear-gradient(180deg, rgba(16,32,51,0.95), rgba(22,35,59,0.94))",
-              color: "#fff",
-              borderRadius: "28px",
-              padding: "24px",
-              boxShadow: "0 20px 50px rgba(15, 23, 42, 0.12)"
-            }}>
-              <div style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.62)" }}>Result panel</div>
+            <aside className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
+              <div style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: THEME.muted }}>Result panel</div>
               <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>Live result</div>
-              <div style={{ color: "rgba(255,255,255,0.72)", marginTop: "6px" }}>
-                {message}
-              </div>
+              <div style={{ color: THEME.muted, marginTop: "6px" }}>{message}</div>
 
               {primaryScan ? (
-                <div style={{ marginTop: "20px" }}>
-                  <div className="lift-card" style={{
-                    background: "rgba(255,255,255,0.08)",
-                    borderRadius: "22px",
-                    padding: "18px",
-                    border: "1px solid rgba(255,255,255,0.1)"
-                  }}>
-                    <div style={{ fontSize: "44px" }}>
-                      {getDisplayCategory(primaryScan.category).icon}
-                    </div>
-                    <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "6px" }}>
-                      {getDisplayCategory(primaryScan.category).label}
-                    </div>
+                <div style={{ marginTop: "18px", display: "grid", gap: "14px" }}>
+                  <div className="lift-card" style={{ background: "rgba(255,255,255,0.05)", borderRadius: "22px", padding: "18px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div style={{ fontSize: "42px" }}>{getDisplayCategory(primaryScan.category).icon}</div>
+                    <div style={{ fontSize: "26px", fontWeight: 800, marginTop: "6px" }}>{getDisplayCategory(primaryScan.category).label}</div>
                     <div style={{ marginTop: "10px", fontSize: "16px" }}>
                       Confidence: <strong>{Math.round((primaryScan.confidence || 0) * 100)}%</strong>
                     </div>
@@ -1090,49 +1011,31 @@ function Dashboard({ onLogout }) {
                       display: "inline-flex",
                       padding: "8px 12px",
                       borderRadius: "999px",
-                      background: primaryScan.recyclable ? "rgba(39,174,96,0.2)" : "rgba(235,87,87,0.2)",
+                      background: primaryScan.recyclable ? "rgba(39,174,96,0.18)" : "rgba(235,87,87,0.18)",
                       color: "#fff"
                     }}>
                       {primaryScan.recyclable ? "♻️ Recyclable" : "🍃 Organic / Non-recyclable"}
                     </div>
-                    <div style={{ marginTop: "14px", color: "rgba(255,255,255,0.8)" }}>
-                      {primaryScan.tip}
-                    </div>
+                    <div style={{ marginTop: "14px", color: "rgba(255,255,255,0.82)" }}>{primaryScan.tip}</div>
                     <div style={{ marginTop: "14px", fontSize: "13px", color: "rgba(255,255,255,0.72)" }}>
                       Suggested bin: {primaryScan.bin}
                     </div>
                   </div>
 
                   {scanResult?.warning && (
-                    <div style={{
-                      marginTop: "14px",
-                      padding: "14px",
-                      borderRadius: "18px",
-                      background: "#fff3cd",
-                      color: "#8a5a00"
-                    }}>
+                    <div style={{ padding: "12px 14px", borderRadius: "18px", background: "#fff3cd", color: "#8a5a00" }}>
                       ⚠️ Wrong bin detected. {scanResult.warning}
                     </div>
                   )}
 
-                  <div style={{
-                    marginTop: "14px",
-                    padding: "14px",
-                    borderRadius: "18px",
-                    background: "rgba(255,255,255,0.08)"
-                  }}>
+                  <div style={{ padding: "14px", borderRadius: "18px", background: "rgba(255,255,255,0.05)" }}>
                     <div style={{ fontWeight: 700, marginBottom: "8px" }}>Voice note</div>
                     <div style={{ color: "rgba(255,255,255,0.78)" }}>
                       Detected result spoken after each successful scan.
                     </div>
                   </div>
 
-                  <div style={{
-                    marginTop: "14px",
-                    padding: "14px",
-                    borderRadius: "18px",
-                    background: "rgba(255,255,255,0.08)"
-                  }}>
+                  <div style={{ padding: "14px", borderRadius: "18px", background: "rgba(255,255,255,0.05)" }}>
                     <div style={{ fontWeight: 700, marginBottom: "8px" }}>Multi-object detection</div>
                     <div style={{ color: "rgba(255,255,255,0.78)" }}>
                       {scanResult.detections.length} item(s) detected in this scan.
@@ -1148,19 +1051,10 @@ function Dashboard({ onLogout }) {
                   </div>
                 </div>
               ) : (
-                <div style={{
-                  marginTop: "22px",
-                  minHeight: "320px",
-                  display: "grid",
-                  placeItems: "center",
-                  textAlign: "center",
-                  color: "rgba(255,255,255,0.7)"
-                }}>
+                <div style={{ marginTop: "22px", minHeight: "280px", display: "grid", placeItems: "center", textAlign: "center", color: "rgba(255,255,255,0.7)" }}>
                   <div>
-                    <div style={{ fontSize: "64px" }}>📸</div>
-                    <div style={{ fontSize: "18px", fontWeight: 700, marginTop: "10px" }}>
-                      No scan yet
-                    </div>
+                    <div style={{ fontSize: "58px" }}>📸</div>
+                    <div style={{ fontSize: "18px", fontWeight: 700, marginTop: "10px" }}>No scan yet</div>
                     <div style={{ marginTop: "6px" }}>
                       Upload or capture an image to see classification results.
                     </div>
@@ -1169,12 +1063,7 @@ function Dashboard({ onLogout }) {
               )}
 
               {rewardNotice && (
-                <div style={{
-                  marginTop: "14px",
-                  padding: "12px 14px",
-                  borderRadius: "16px",
-                  background: "rgba(255,255,255,0.1)"
-                }}>
+                <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "16px", background: "rgba(255,255,255,0.08)" }}>
                   {rewardNotice}
                 </div>
               )}
