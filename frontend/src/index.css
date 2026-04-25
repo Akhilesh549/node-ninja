@@ -54,6 +54,15 @@ body {
   margin: 0;
 }
 
+/* Camera video element */
+.camera-video {
+  background-color: #000 !important;
+}
+
+.camera-video::-webkit-media-controls {
+  display: none !important;
+}
+
 #root {
   width: 1126px;
   max-width: 100%;
