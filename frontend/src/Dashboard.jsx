@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -76,6 +76,20 @@ const seedLeaderboard = [
   { name: "RecyclePro", points: 610, streak: 11, badge: "Carbon Captain" }
 ];
 
+const THEME = {
+  pageBg: "#06111f",
+  pageBgSoft: "#0f1b2d",
+  surface: "rgba(13, 24, 42, 0.78)",
+  surfaceStrong: "rgba(16, 30, 50, 0.92)",
+  border: "rgba(148, 163, 184, 0.16)",
+  text: "#e8eef8",
+  muted: "#9fb2c8",
+  accent: "#2ecc71",
+  accentAlt: "#2d9cdb",
+  warning: "#f1c40f",
+  danger: "#eb5757"
+};
+
 const normalizeCategory = (value) => {
   const raw = String(value || "").trim().toLowerCase();
   if (raw === "paper" || raw === "cardboard" || raw === "paperboard") {
@@ -149,7 +163,7 @@ const saveProfile = (profile) => {
   }
 };
 
-function Dashboard() {
+function Dashboard({ onLogout }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const cameraStreamRef = useRef(null);
@@ -166,7 +180,6 @@ function Dashboard() {
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState(DEFAULT_STATS);
   const [profile, setProfile] = useState(loadProfile);
-  const [leaderboard, setLeaderboard] = useState(seedLeaderboard);
   const [error, setError] = useState("");
   const [cameraError, setCameraError] = useState("");
   const [message, setMessage] = useState("Ready to scan waste.");
@@ -176,12 +189,35 @@ function Dashboard() {
   const [note, setNote] = useState("");
 
   const speak = useCallback((text) => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.94;
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance === "undefined") {
+      console.warn("Speech synthesis is not available in this browser.");
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.95;
     utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+    utterance.volume = 1;
+
+    const voices = synth.getVoices();
+    if (voices.length > 0) {
+      const preferredVoice = voices.find((voice) => /en/i.test(voice.lang) || /en/i.test(voice.name));
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+    }
+
+    synth.cancel();
+    if (typeof synth.resume === "function") {
+      synth.resume();
+    }
+
+    window.setTimeout(() => {
+      synth.speak(utterance);
+    }, 120);
   }, []);
 
   const fetchStats = useCallback(async () => {
@@ -210,8 +246,9 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetchStats();
-    fetchHistory();
+    void (async () => {
+      await Promise.all([fetchStats(), fetchHistory()]);
+    })();
   }, [fetchStats, fetchHistory]);
 
   useEffect(() => {
@@ -226,7 +263,7 @@ function Dashboard() {
     };
   }, [previewUrl]);
 
-  useEffect(() => {
+  const leaderboard = useMemo(() => {
     const currentUser = {
       name: "You",
       points: profile.points,
@@ -234,11 +271,9 @@ function Dashboard() {
       badge: profile.badges[0] || "Just Starting"
     };
 
-    const merged = [...seedLeaderboard, currentUser]
+    return [...seedLeaderboard, currentUser]
       .sort((a, b) => b.points - a.points)
       .slice(0, 5);
-
-    setLeaderboard(merged);
   }, [profile]);
 
   useEffect(() => {
@@ -512,13 +547,33 @@ function Dashboard() {
 
   const recentScans = history.slice(0, 6);
   const primaryScan = scanResult?.primary;
+  const successRate = stats.totalItems > 0
+    ? Math.round((stats.recyclableCount / stats.totalItems) * 100)
+    : 0;
+  const badgeCount = profile.badges.length;
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #08111f 0%, #111c30 45%, #f4f7fb 45%, #f4f7fb 100%)",
-      color: "#102033"
+      background: `radial-gradient(circle at top left, rgba(46, 204, 113, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(45, 156, 219, 0.2), transparent 24%),
+        radial-gradient(circle at 50% 100%, rgba(241, 196, 15, 0.08), transparent 26%),
+        linear-gradient(180deg, ${THEME.pageBg} 0%, ${THEME.pageBgSoft} 48%, #07101d 100%)`,
+      color: THEME.text,
+      position: "relative",
+      overflow: "hidden"
     }}>
+      <div style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        opacity: 0.22,
+        backgroundImage:
+          "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+        backgroundSize: "44px 44px",
+        maskImage: "linear-gradient(180deg, rgba(0,0,0,0.6), transparent 95%)"
+      }} />
+
       <style>{`
         @keyframes confettiFall {
           0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
@@ -528,7 +583,66 @@ function Dashboard() {
           0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.35); }
           50% { transform: scale(1.01); box-shadow: 0 0 0 12px rgba(46, 204, 113, 0); }
         }
+        @keyframes floatBlob {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(0, -18px, 0) scale(1.04); }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(120%); }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .dashboard-hero {
+          animation: fadeUp 0.6s ease both;
+        }
+        .glass-panel {
+          background: ${THEME.surface};
+          border: 1px solid ${THEME.border};
+          backdrop-filter: blur(18px);
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+        }
+        .lift-card {
+          transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+        .lift-card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 22px 55px rgba(0, 0, 0, 0.18);
+          border-color: rgba(46, 204, 113, 0.28);
+        }
+        .soft-button {
+          transition: transform 180ms ease, filter 180ms ease, background 180ms ease;
+        }
+        .soft-button:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.06);
+        }
       `}</style>
+
+      <div style={{
+        position: "absolute",
+        top: "90px",
+        left: "-80px",
+        width: "220px",
+        height: "220px",
+        borderRadius: "50%",
+        background: "rgba(46, 204, 113, 0.15)",
+        filter: "blur(20px)",
+        animation: "floatBlob 8s ease-in-out infinite"
+      }} />
+      <div style={{
+        position: "absolute",
+        top: "140px",
+        right: "-60px",
+        width: "180px",
+        height: "180px",
+        borderRadius: "50%",
+        background: "rgba(45, 156, 219, 0.18)",
+        filter: "blur(24px)",
+        animation: "floatBlob 10s ease-in-out infinite"
+      }} />
 
       {showConfetti && (
         <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2000 }}>
@@ -559,29 +673,57 @@ function Dashboard() {
       <header style={{
         padding: "28px 22px 18px",
         color: "#fff",
-        background: "linear-gradient(135deg, rgba(8,17,31,0.98), rgba(22,35,58,0.98))",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.25)"
+        background: "linear-gradient(135deg, rgba(5, 14, 25, 0.95), rgba(12, 24, 42, 0.98))",
+        boxShadow: "0 16px 40px rgba(0,0,0,0.28)",
+        position: "relative",
+        zIndex: 1
       }}>
-        <div style={{ maxWidth: "1400px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ maxWidth: "1400px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }} className="dashboard-hero">
           <div>
-            <div style={{ fontSize: "34px", fontWeight: 800, letterSpacing: "-0.02em" }}>
+            <div style={{ fontSize: "15px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(232,238,248,0.7)" }}>
+              Eco intelligence center
+            </div>
+            <div style={{ fontSize: "36px", fontWeight: 900, letterSpacing: "-0.03em", marginTop: "6px" }}>
               ♻️ Waste Segregation AI
             </div>
-            <div style={{ opacity: 0.85, marginTop: "6px" }}>
-              Scan, learn, earn rewards, and keep your eco streak alive.
+            <div style={{ opacity: 0.84, marginTop: "8px", maxWidth: "680px", lineHeight: 1.55 }}>
+              Scan waste, see confidence, get voice guidance, and track eco performance with a cleaner, more professional dashboard.
             </div>
           </div>
-          <div style={{
-            padding: "12px 18px",
-            borderRadius: "999px",
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            backdropFilter: "blur(12px)"
-          }}>
+        <div style={{
+          padding: "12px 18px",
+          borderRadius: "999px",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.11)",
+          backdropFilter: "blur(12px)",
+          minWidth: "160px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px"
+        }}>
+          <div>
             <div style={{ fontSize: "13px", opacity: 0.7 }}>Current streak</div>
             <div style={{ fontSize: "20px", fontWeight: 700 }}>{profile.streak} days</div>
           </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="soft-button"
+            style={{
+              border: "none",
+              cursor: "pointer",
+              padding: "10px 14px",
+              borderRadius: "999px",
+              background: "linear-gradient(135deg, #eb5757, #ff7a7a)",
+              color: "#fff",
+              fontWeight: 800,
+              whiteSpace: "nowrap"
+            }}
+          >
+            Logout
+          </button>
         </div>
+      </div>
 
         <div style={{
           maxWidth: "1400px",
@@ -603,6 +745,7 @@ function Dashboard() {
                 background: currentTab === tab ? "linear-gradient(135deg, #27ae60, #2ecc71)" : "rgba(255,255,255,0.08)",
                 boxShadow: currentTab === tab ? "0 10px 25px rgba(39,174,96,0.25)" : "none"
               }}
+              className="soft-button"
             >
               {tab === "scan" && "📷 Scan"}
               {tab === "stats" && "📊 Stats"}
@@ -614,15 +757,16 @@ function Dashboard() {
         </div>
       </header>
 
-      <main style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px 18px 40px" }}>
+      <main style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px 18px 40px", position: "relative", zIndex: 1 }}>
         {note && (
           <div style={{
             marginBottom: "18px",
             padding: "14px 16px",
             borderRadius: "16px",
-            background: "#fff4d6",
+            background: "rgba(255, 244, 214, 0.98)",
             color: "#8a5a00",
-            border: "1px solid #f3d27a"
+            border: "1px solid #f3d27a",
+            boxShadow: "0 12px 28px rgba(0,0,0,0.08)"
           }}>
             {note}
           </div>
@@ -630,26 +774,28 @@ function Dashboard() {
 
         {currentTab === "scan" && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px", alignItems: "start" }}>
-            <section style={{
-              background: "#fff",
+            <section className="glass-panel lift-card" style={{
               borderRadius: "28px",
-              padding: "24px",
-              boxShadow: "0 20px 50px rgba(15, 23, 42, 0.08)"
+              padding: "24px"
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", alignItems: "center", marginBottom: "18px" }}>
                 <div>
-                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#102033" }}>Camera or Upload</div>
-                  <div style={{ color: "#64748b", marginTop: "6px" }}>Use the camera or upload an image from your device.</div>
+                  <div style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: THEME.muted }}>
+                    Scan studio
+                  </div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: THEME.text }}>Camera or Upload</div>
+                  <div style={{ color: THEME.muted, marginTop: "6px" }}>Use the camera or upload an image from your device.</div>
                 </div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <button
                     onClick={() => setScanMode("camera")}
+                    className="soft-button"
                     style={{
                       border: "none",
                       cursor: "pointer",
                       padding: "10px 16px",
                       borderRadius: "999px",
-                      background: scanMode === "camera" ? "#102033" : "#eef2f7",
+                      background: scanMode === "camera" ? "linear-gradient(135deg, #27ae60, #2ecc71)" : "#eef2f7",
                       color: scanMode === "camera" ? "#fff" : "#102033"
                     }}
                   >
@@ -657,12 +803,13 @@ function Dashboard() {
                   </button>
                   <button
                     onClick={() => setScanMode("upload")}
+                    className="soft-button"
                     style={{
                       border: "none",
                       cursor: "pointer",
                       padding: "10px 16px",
                       borderRadius: "999px",
-                      background: scanMode === "upload" ? "#102033" : "#eef2f7",
+                      background: scanMode === "upload" ? "linear-gradient(135deg, #102033, #314766)" : "#eef2f7",
                       color: scanMode === "upload" ? "#fff" : "#102033"
                     }}
                   >
@@ -670,12 +817,13 @@ function Dashboard() {
                   </button>
                   <button
                     onClick={openFilePicker}
+                    className="soft-button"
                     style={{
                       border: "none",
                       cursor: "pointer",
                       padding: "10px 16px",
                       borderRadius: "999px",
-                      background: "#27ae60",
+                      background: "linear-gradient(135deg, #2d9cdb, #56ccf2)",
                       color: "#fff"
                     }}
                   >
@@ -684,22 +832,36 @@ function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: "14px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-                <label style={{ fontWeight: 700, color: "#102033" }}>Bin placed in:</label>
-                <select
-                  value={selectedBin}
-                  onChange={(e) => setSelectedBin(e.target.value)}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1px solid #d7dde6",
-                    background: "#fff"
-                  }}
-                >
-                  <option value="auto">Auto check</option>
-                  <option value="organic">Organic Bin</option>
-                  <option value="recyclable">Recyclable Bin</option>
-                </select>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "18px" }}>
+                <div style={{
+                  padding: "14px 16px",
+                  borderRadius: "18px",
+                  background: "rgba(46, 204, 113, 0.08)",
+                  border: "1px solid rgba(46, 204, 113, 0.12)"
+                }}>
+                  <div style={{ fontSize: "12px", color: THEME.muted }}>Confidence</div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>
+                    {primaryScan ? `${Math.round((primaryScan.confidence || 0) * 100)}%` : "—"}
+                  </div>
+                </div>
+                <div style={{
+                  padding: "14px 16px",
+                  borderRadius: "18px",
+                  background: "rgba(45, 156, 219, 0.08)",
+                  border: "1px solid rgba(45, 156, 219, 0.12)"
+                }}>
+                  <div style={{ fontSize: "12px", color: THEME.muted }}>Success rate</div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>{successRate}%</div>
+                </div>
+                <div style={{
+                  padding: "14px 16px",
+                  borderRadius: "18px",
+                  background: "rgba(241, 196, 15, 0.09)",
+                  border: "1px solid rgba(241, 196, 15, 0.12)"
+                }}>
+                  <div style={{ fontSize: "12px", color: THEME.muted }}>Badges</div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: THEME.text }}>{badgeCount}</div>
+                </div>
               </div>
 
               <div style={{
@@ -709,9 +871,27 @@ function Dashboard() {
                 borderRadius: "24px",
                 overflow: "hidden",
                 background: scanMode === "camera" ? "#07101d" : "#f2f5fa",
-                border: "2px solid #dbe4ee",
+                border: "2px solid rgba(148, 163, 184, 0.22)",
                 boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4)"
               }}>
+                {scanMode === "camera" && (
+                  <div style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, rgba(46, 204, 113, 0.02), rgba(45, 156, 219, 0.08))"
+                  }}>
+                    <div style={{
+                      position: "absolute",
+                      top: "16px",
+                      left: "16px",
+                      right: "16px",
+                      height: "2px",
+                      background: "linear-gradient(90deg, transparent, rgba(46, 204, 113, 0.9), transparent)",
+                      animation: "shimmer 3.4s linear infinite"
+                    }} />
+                  </div>
+                )}
+
                 <video
                   ref={videoRef}
                   autoPlay
@@ -773,6 +953,25 @@ function Dashboard() {
                 </div>
               </div>
 
+              <div style={{ marginTop: "14px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ fontWeight: 700, color: THEME.text }}>Bin placed in:</label>
+                <select
+                  value={selectedBin}
+                  onChange={(e) => setSelectedBin(e.target.value)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: "12px",
+                    border: "1px solid rgba(148, 163, 184, 0.3)",
+                    background: "rgba(255,255,255,0.92)",
+                    color: "#102033"
+                  }}
+                >
+                  <option value="auto">Auto check</option>
+                  <option value="organic">Organic Bin</option>
+                  <option value="recyclable">Recyclable Bin</option>
+                </select>
+              </div>
+
               <canvas ref={canvasRef} style={{ display: "none" }} />
               <input
                 ref={fileInputRef}
@@ -785,6 +984,7 @@ function Dashboard() {
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "18px" }}>
                 <button
                   onClick={startCamera}
+                  className="soft-button"
                   style={{
                     border: "none",
                     cursor: "pointer",
@@ -799,6 +999,7 @@ function Dashboard() {
                 </button>
                 <button
                   onClick={stopCamera}
+                  className="soft-button"
                   style={{
                     border: "none",
                     cursor: "pointer",
@@ -814,6 +1015,7 @@ function Dashboard() {
                 <button
                   onClick={handleClassify}
                   disabled={isScanning}
+                  className="soft-button"
                   style={{
                     border: "none",
                     cursor: isScanning ? "not-allowed" : "pointer",
@@ -853,21 +1055,22 @@ function Dashboard() {
               )}
             </section>
 
-            <aside style={{
-              background: "linear-gradient(180deg, #102033, #16233b)",
+            <aside className="glass-panel lift-card" style={{
+              background: "linear-gradient(180deg, rgba(16,32,51,0.95), rgba(22,35,59,0.94))",
               color: "#fff",
               borderRadius: "28px",
               padding: "24px",
               boxShadow: "0 20px 50px rgba(15, 23, 42, 0.12)"
             }}>
-              <div style={{ fontSize: "22px", fontWeight: 800 }}>Result</div>
+              <div style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.62)" }}>Result panel</div>
+              <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>Live result</div>
               <div style={{ color: "rgba(255,255,255,0.72)", marginTop: "6px" }}>
                 {message}
               </div>
 
               {primaryScan ? (
                 <div style={{ marginTop: "20px" }}>
-                  <div style={{
+                  <div className="lift-card" style={{
                     background: "rgba(255,255,255,0.08)",
                     borderRadius: "22px",
                     padding: "18px",
@@ -984,13 +1187,14 @@ function Dashboard() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "16px" }}>
               {metricCards.map((card) => (
                 <div key={card.label} style={{
-                  background: "#fff",
+                  background: "rgba(13, 24, 42, 0.88)",
                   borderRadius: "22px",
                   padding: "20px",
-                  boxShadow: "0 16px 36px rgba(15, 23, 42, 0.07)",
-                  borderTop: `4px solid ${card.accent}`
+                  boxShadow: "0 16px 36px rgba(0, 0, 0, 0.22)",
+                  borderTop: `4px solid ${card.accent}`,
+                  border: "1px solid rgba(148, 163, 184, 0.14)"
                 }}>
-                  <div style={{ color: "#64748b", fontSize: "14px", fontWeight: 700 }}>{card.label}</div>
+                  <div style={{ color: "rgba(232, 238, 248, 0.72)", fontSize: "14px", fontWeight: 700 }}>{card.label}</div>
                   <div style={{ fontSize: "36px", fontWeight: 900, marginTop: "10px", color: card.accent }}>
                     {card.value}
                   </div>
@@ -999,7 +1203,7 @@ function Dashboard() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "18px", marginTop: "18px" }}>
-              <section style={{ background: "#fff", borderRadius: "26px", padding: "22px", boxShadow: "0 16px 36px rgba(15,23,42,0.07)" }}>
+              <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
                 <div style={{ fontSize: "20px", fontWeight: 800, marginBottom: "12px" }}>Pie chart</div>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -1013,7 +1217,7 @@ function Dashboard() {
                 </ResponsiveContainer>
               </section>
 
-              <section style={{ background: "#fff", borderRadius: "26px", padding: "22px", boxShadow: "0 16px 36px rgba(15,23,42,0.07)" }}>
+              <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
                 <div style={{ fontSize: "20px", fontWeight: 800, marginBottom: "12px" }}>Bar chart</div>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={categoriesChartData}>
@@ -1034,75 +1238,121 @@ function Dashboard() {
         )}
 
         {currentTab === "history" && (
-          <section style={{ background: "#fff", borderRadius: "26px", padding: "22px", boxShadow: "0 16px 36px rgba(15,23,42,0.07)" }}>
+          <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
             <div style={{ fontSize: "22px", fontWeight: 800, marginBottom: "14px" }}>Recent scan history</div>
             {recentScans.length > 0 ? (
-              <div style={{ display: "grid", gap: "12px" }}>
-                {recentScans.map((item) => {
-                  const meta = getDisplayCategory(item.category);
-                  const confidence = safeNumber(item.confidence, 0);
-                  const recyclable = typeof item.recyclable === "boolean" ? item.recyclable : isRecyclableCategory(item.category);
-                  return (
-                    <div key={item.id} style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto 1fr auto",
-                      gap: "12px",
-                      alignItems: "center",
-                      padding: "14px 16px",
-                      borderRadius: "18px",
-                      background: "#f7f9fc",
-                      border: "1px solid #e8eef5"
-                    }}>
-                      <div style={{
-                        width: "50px",
-                        height: "50px",
-                        borderRadius: "16px",
-                        display: "grid",
-                        placeItems: "center",
-                        background: meta.color + "18",
-                        fontSize: "24px"
-                      }}>
-                        {meta.icon}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 800 }}>{meta.label}</div>
-                        <div style={{ color: "#64748b", marginTop: "4px" }}>
-                          {formatDateTime(item.createdAt)} · {recyclable ? "Recyclable" : "Non-recyclable"}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 800 }}>{Math.round(confidence * 100)}%</div>
-                        <div style={{ color: "#64748b", marginTop: "4px" }}>{item.tip}</div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ overflowX: "auto" }}>
+                <table style={{
+                  width: "100%",
+                  borderCollapse: "separate",
+                  borderSpacing: 0,
+                  minWidth: "860px",
+                  background: "rgba(13, 24, 42, 0.82)",
+                  border: "1px solid rgba(148, 163, 184, 0.14)",
+                  borderRadius: "18px",
+                  overflow: "hidden"
+                }}>
+                  <thead>
+                    <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                      {["#", "Item", "Category", "Confidence", "Bin", "Tip", "Date & Time"].map((heading) => (
+                        <th
+                          key={heading}
+                          style={{
+                            textAlign: "left",
+                            padding: "14px 16px",
+                            fontSize: "13px",
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: "rgba(232, 238, 248, 0.74)",
+                            borderBottom: "1px solid rgba(148, 163, 184, 0.14)"
+                          }}
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentScans.map((item, index) => {
+                      const meta = getDisplayCategory(item.category);
+                      const confidence = safeNumber(item.confidence, 0);
+                      const recyclable = typeof item.recyclable === "boolean" ? item.recyclable : isRecyclableCategory(item.category);
+                      return (
+                        <tr key={item.id} style={{ background: index % 2 === 0 ? "rgba(255,255,255,0.01)" : "rgba(255,255,255,0.03)" }}>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)" }}>
+                            {index + 1}
+                          </td>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <span style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "12px",
+                                display: "grid",
+                                placeItems: "center",
+                                background: `${meta.color}20`,
+                                fontSize: "22px"
+                              }}>
+                                {meta.icon}
+                              </span>
+                              <span style={{ fontWeight: 800, color: "#f5f9ff" }}>{meta.label}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)" }}>
+                            {meta.label}
+                          </td>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)", fontWeight: 800 }}>
+                            {Math.round(confidence * 100)}%
+                          </td>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)" }}>
+                            <span style={{
+                              display: "inline-flex",
+                              padding: "8px 12px",
+                              borderRadius: "999px",
+                              background: recyclable ? "rgba(39, 174, 96, 0.16)" : "rgba(235, 87, 87, 0.16)",
+                              color: recyclable ? "#73e29e" : "#ff9d9d",
+                              border: `1px solid ${recyclable ? "rgba(39, 174, 96, 0.24)" : "rgba(235, 87, 87, 0.24)"}`
+                            }}>
+                              {recyclable ? "Recyclable Bin" : "Organic Bin"}
+                            </span>
+                          </td>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)", color: "rgba(232, 238, 248, 0.86)" }}>
+                            {item.tip}
+                          </td>
+                          <td style={{ padding: "14px 16px", borderBottom: "1px solid rgba(148, 163, 184, 0.08)", color: "rgba(232, 238, 248, 0.78)", whiteSpace: "nowrap" }}>
+                            {formatDateTime(item.createdAt)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <div style={{ color: "#64748b", padding: "24px 0" }}>No history yet. Start scanning waste to build your timeline.</div>
+              <div style={{ color: "rgba(232, 238, 248, 0.72)", padding: "24px 0" }}>No history yet. Start scanning waste to build your timeline.</div>
             )}
           </section>
         )}
 
         {currentTab === "rewards" && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "18px" }}>
-            <section style={{ background: "#fff", borderRadius: "26px", padding: "22px", boxShadow: "0 16px 36px rgba(15,23,42,0.07)" }}>
+            <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
               <div style={{ fontSize: "22px", fontWeight: 800 }}>User rewards</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "14px" }}>
-                <div style={{ padding: "16px", borderRadius: "18px", background: "#f0fbf4" }}>
-                  <div style={{ color: "#64748b" }}>Points</div>
+                <div style={{ padding: "16px", borderRadius: "18px", background: "rgba(46, 204, 113, 0.08)", border: "1px solid rgba(46, 204, 113, 0.12)" }}>
+                  <div style={{ color: "rgba(232, 238, 248, 0.72)" }}>Points</div>
                   <div style={{ fontSize: "32px", fontWeight: 900, color: "#27ae60" }}>{profile.points}</div>
                 </div>
-                <div style={{ padding: "16px", borderRadius: "18px", background: "#f1f7ff" }}>
-                  <div style={{ color: "#64748b" }}>Coins</div>
+                <div style={{ padding: "16px", borderRadius: "18px", background: "rgba(45, 156, 219, 0.08)", border: "1px solid rgba(45, 156, 219, 0.12)" }}>
+                  <div style={{ color: "rgba(232, 238, 248, 0.72)" }}>Coins</div>
                   <div style={{ fontSize: "32px", fontWeight: 900, color: "#2d9cdb" }}>{profile.coins}</div>
                 </div>
-                <div style={{ padding: "16px", borderRadius: "18px", background: "#fff8e8" }}>
-                  <div style={{ color: "#64748b" }}>Carbon credits</div>
+                <div style={{ padding: "16px", borderRadius: "18px", background: "rgba(241, 196, 15, 0.08)", border: "1px solid rgba(241, 196, 15, 0.12)" }}>
+                  <div style={{ color: "rgba(232, 238, 248, 0.72)" }}>Carbon credits</div>
                   <div style={{ fontSize: "32px", fontWeight: 900, color: "#f1c40f" }}>{profile.carbonCredits.toFixed(2)}</div>
                 </div>
-                <div style={{ padding: "16px", borderRadius: "18px", background: "#fff0f0" }}>
-                  <div style={{ color: "#64748b" }}>Scans</div>
+                <div style={{ padding: "16px", borderRadius: "18px", background: "rgba(235, 87, 87, 0.08)", border: "1px solid rgba(235, 87, 87, 0.12)" }}>
+                  <div style={{ color: "rgba(232, 238, 248, 0.72)" }}>Scans</div>
                   <div style={{ fontSize: "32px", fontWeight: 900, color: "#eb5757" }}>{profile.scans}</div>
                 </div>
               </div>
@@ -1111,19 +1361,19 @@ function Dashboard() {
                 <div style={{ fontWeight: 800, marginBottom: "8px" }}>Badges</div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   {profile.badges.length > 0 ? profile.badges.map((badge) => (
-                    <span key={badge} style={{ padding: "8px 12px", borderRadius: "999px", background: "#102033", color: "#fff" }}>
+                    <span key={badge} style={{ padding: "8px 12px", borderRadius: "999px", background: "rgba(255,255,255,0.08)", color: "#fff", border: "1px solid rgba(255,255,255,0.08)" }}>
                       {badge}
                     </span>
                   )) : (
-                    <span style={{ color: "#64748b" }}>Keep scanning to unlock badges like Green Hero and Eco Warrior.</span>
+                    <span style={{ color: "rgba(232, 238, 248, 0.72)" }}>Keep scanning to unlock badges like Green Hero and Eco Warrior.</span>
                   )}
                 </div>
               </div>
             </section>
 
-            <section style={{ background: "#fff", borderRadius: "26px", padding: "22px", boxShadow: "0 16px 36px rgba(15,23,42,0.07)" }}>
+            <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
               <div style={{ fontSize: "22px", fontWeight: 800 }}>Redeem rewards</div>
-              <div style={{ color: "#64748b", marginTop: "6px" }}>Unlock gifts after reaching thresholds.</div>
+              <div style={{ color: "rgba(232, 238, 248, 0.72)", marginTop: "6px" }}>Unlock gifts after reaching thresholds.</div>
               <div style={{ display: "grid", gap: "12px", marginTop: "14px" }}>
                 {REWARD_THRESHOLDS.map((reward) => {
                   const claimed = profile.claimedRewards.includes(reward.points);
@@ -1132,13 +1382,13 @@ function Dashboard() {
                     <div key={reward.points} style={{
                       padding: "16px",
                       borderRadius: "18px",
-                      border: "1px solid #e7edf5",
-                      background: unlocked ? "#f6fff9" : "#fafbfd"
+                      border: "1px solid rgba(148, 163, 184, 0.14)",
+                      background: unlocked ? "rgba(46, 204, 113, 0.08)" : "rgba(255,255,255,0.05)"
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
                         <div>
                           <div style={{ fontWeight: 800 }}>{reward.icon} {reward.title}</div>
-                          <div style={{ color: "#64748b", marginTop: "4px" }}>{reward.points} points required</div>
+                          <div style={{ color: "rgba(232, 238, 248, 0.72)", marginTop: "4px" }}>{reward.points} points required</div>
                         </div>
                         <button
                           onClick={() => claimReward(reward)}
@@ -1164,9 +1414,9 @@ function Dashboard() {
         )}
 
         {currentTab === "leaderboard" && (
-          <section style={{ background: "#fff", borderRadius: "26px", padding: "22px", boxShadow: "0 16px 36px rgba(15,23,42,0.07)" }}>
+            <section className="glass-panel lift-card" style={{ borderRadius: "26px", padding: "22px", color: THEME.text }}>
             <div style={{ fontSize: "22px", fontWeight: 800 }}>Leaderboard</div>
-            <div style={{ color: "#64748b", marginTop: "6px" }}>Top eco champions this session.</div>
+            <div style={{ color: "rgba(232, 238, 248, 0.72)", marginTop: "6px" }}>Top eco champions this session.</div>
             <div style={{ display: "grid", gap: "12px", marginTop: "14px" }}>
               {leaderboard.map((user, index) => (
                 <div key={`${user.name}-${index}`} style={{
@@ -1176,19 +1426,19 @@ function Dashboard() {
                   alignItems: "center",
                   padding: "14px 16px",
                   borderRadius: "18px",
-                  background: index === 0 ? "#f4fff7" : "#f8fafc",
-                  border: "1px solid #e8eef5"
+                  background: index === 0 ? "rgba(46, 204, 113, 0.08)" : "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(148, 163, 184, 0.14)"
                 }}>
-                  <div style={{ width: "42px", height: "42px", borderRadius: "14px", display: "grid", placeItems: "center", background: index === 0 ? "#27ae60" : "#dbe4ee", color: index === 0 ? "#fff" : "#102033", fontWeight: 800 }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "14px", display: "grid", placeItems: "center", background: index === 0 ? "#27ae60" : "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 800 }}>
                     {index + 1}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800 }}>{user.name}</div>
-                    <div style={{ color: "#64748b", marginTop: "4px" }}>{user.badge}</div>
+                    <div style={{ fontWeight: 800, color: "#f5f9ff" }}>{user.name}</div>
+                    <div style={{ color: "rgba(232, 238, 248, 0.72)", marginTop: "4px" }}>{user.badge}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 900 }}>{user.points} pts</div>
-                    <div style={{ color: "#64748b", marginTop: "4px" }}>{user.streak} day streak</div>
+                    <div style={{ color: "rgba(232, 238, 248, 0.72)", marginTop: "4px" }}>{user.streak} day streak</div>
                   </div>
                 </div>
               ))}
