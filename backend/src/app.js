@@ -2,14 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
+dotenv.config();
+
 const classifyRoutes = require('./routes/classify.routes');
 const historyRoutes = require('./routes/history.routes');
 const disposalRoutes = require('./routes/disposal.routes');
 const statsRoutes = require('./routes/stats.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
-
-dotenv.config();
 
 const app = express();
 

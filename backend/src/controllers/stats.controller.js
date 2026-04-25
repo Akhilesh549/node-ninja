@@ -1,5 +1,4 @@
-const { get, ref } = require('../config/firebase');
-const { database } = require('../config/firebase');
+const { database, get, ref, isFirebaseConfigured } = require('../config/firebase');
 
 const normalizeCategory = (category) => {
   const raw = String(category || '').toLowerCase();
@@ -14,10 +13,7 @@ const normalizeCategory = (category) => {
 
 const getStats = async (req, res) => {
   try {
-    // Check if Firebase is configured with real credentials
-    const dbUrl = process.env.FIREBASE_DATABASE_URL;
-    if (!dbUrl || dbUrl.includes('your-project')) {
-      // Return mock data if Firebase not configured
+    if (!isFirebaseConfigured()) {
       return res.status(200).json({
         totalItems: 0,
         breakdown: {

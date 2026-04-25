@@ -1,11 +1,8 @@
-const { database, get, ref, push, set } = require('../config/firebase');
+const { database, get, ref, push, set, isFirebaseConfigured } = require('../config/firebase');
 
 const getHistory = async (req, res) => {
   try {
-    // Check if Firebase is configured with real credentials
-    const dbUrl = process.env.FIREBASE_DATABASE_URL;
-    if (!dbUrl || dbUrl.includes('your-project')) {
-      // Return mock data if Firebase not configured
+    if (!isFirebaseConfigured()) {
       return res.status(200).json({ 
         items: [], 
         total: 0,
@@ -55,12 +52,18 @@ const getHistory = async (req, res) => {
 
 const addHistory = async (classification) => {
   try {
+    if (!isFirebaseConfigured()) {
+      return null;
+    }
+
     const historyRef = ref(database, 'classifications');
     const newRef = push(historyRef);
-    await set(newRef, {
+    const record = {
       ...classification,
       createdAt: new Date().toISOString()
-    });
+    };
+
+    await set(newRef, record);
     return newRef.key;
   } catch (error) {
     console.error('Error adding history:', error);
