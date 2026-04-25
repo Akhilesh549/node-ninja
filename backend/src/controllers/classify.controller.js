@@ -1,4 +1,5 @@
 const { classifyImage } = require('../services/classify.service');
+const { addHistory } = require('./history.controller');
 
 const classifyWaste = async (req, res, next) => {
   try {
@@ -7,6 +8,14 @@ const classifyWaste = async (req, res, next) => {
     }
 
     const result = await classifyImage(req.file);
+
+    // Save to Firebase history
+    await addHistory({
+      category: result.category,
+      confidence: result.confidence,
+      tip: result.tip,
+      filename: result.filename
+    });
 
     return res.status(200).json(result);
   } catch (error) {
