@@ -79,4 +79,4 @@ history = model.fit(
 # Save model
 model.save("waste_classifier.h5")
 
-print("✅ Training complete. Model saved!")
+print("Training complete. Model saved!")
