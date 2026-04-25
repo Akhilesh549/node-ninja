@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const AUTH_STORAGE_KEY = "waste-ai-auth-v1";
 const REMEMBER_STORAGE_KEY = "waste-ai-remember-v1";
+const ACCOUNT_STORAGE_KEY = "waste-ai-account-v1";
 
 const MOCK_USER = {
   identifier: "admin@wasteai.com",
@@ -16,6 +17,16 @@ const readRememberedIdentifier = () => {
   }
 };
 
+const readSavedAccount = () => {
+  try {
+    const raw = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
 function LoginPage({ onLoginSuccess }) {
   const [identifier, setIdentifier] = useState(readRememberedIdentifier());
   const [password, setPassword] = useState("");
@@ -27,6 +38,12 @@ function LoginPage({ onLoginSuccess }) {
   const [showPopup, setShowPopup] = useState(false);
   const [popupType, setPopupType] = useState("success");
   const [popupMessage, setPopupMessage] = useState("");
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupErrors, setSignupErrors] = useState({});
 
   const particles = useMemo(
     () =>
@@ -121,9 +138,13 @@ function LoginPage({ onLoginSuccess }) {
 
     const normalizedIdentifier = identifier.trim().toLowerCase();
     const normalizedPassword = password.trim();
+    const savedAccount = readSavedAccount();
     const isValid =
-      normalizedIdentifier === MOCK_USER.identifier &&
-      normalizedPassword === MOCK_USER.password;
+      (savedAccount &&
+        normalizedIdentifier === String(savedAccount.identifier || "").toLowerCase() &&
+        normalizedPassword === String(savedAccount.password || "")) ||
+      (normalizedIdentifier === MOCK_USER.identifier &&
+        normalizedPassword === MOCK_USER.password);
 
     if (isValid) {
       const authPayload = {
@@ -162,6 +183,75 @@ function LoginPage({ onLoginSuccess }) {
   const handleForgotPassword = (event) => {
     event.preventDefault();
     setToast("Forgot password flow will be connected later.");
+  };
+
+  const handleSignupOpen = (event) => {
+    event.preventDefault();
+    setSignupErrors({});
+    setShowSignupModal(true);
+  };
+
+  const handleSignupSubmit = (event) => {
+    event.preventDefault();
+
+    const nextErrors = {};
+    const trimmedName = signupName.trim();
+    const trimmedEmail = signupEmail.trim().toLowerCase();
+    const trimmedPassword = signupPassword.trim();
+    const trimmedConfirm = signupConfirmPassword.trim();
+
+    if (!trimmedName) {
+      nextErrors.name = "Name is required.";
+    }
+
+    if (!trimmedEmail) {
+      nextErrors.email = "Email is required.";
+    } else {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(trimmedEmail)) {
+        nextErrors.email = "Enter a valid email address.";
+      }
+    }
+
+    if (trimmedPassword.length < 6) {
+      nextErrors.password = "Password must be at least 6 characters.";
+    }
+
+    if (trimmedPassword !== trimmedConfirm) {
+      nextErrors.confirm = "Passwords do not match.";
+    }
+
+    setSignupErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setPopupType("error");
+      setPopupMessage("Please fix the signup fields.");
+      setShowPopup(true);
+      return;
+    }
+
+    try {
+      localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify({
+        name: trimmedName,
+        identifier: trimmedEmail,
+        password: trimmedPassword
+      }));
+    } catch {
+      // ignore storage errors
+    }
+
+    setIdentifier(trimmedEmail);
+    setPassword(trimmedPassword);
+    setShowSignupModal(false);
+    setSignupName("");
+    setSignupEmail("");
+    setSignupPassword("");
+    setSignupConfirmPassword("");
+    setSignupErrors({});
+    setPopupType("success");
+    setPopupMessage("Account created. You can log in now.");
+    setShowPopup(true);
+    setToast("Signup successful.");
   };
 
   return (
@@ -507,7 +597,7 @@ function LoginPage({ onLoginSuccess }) {
               fontSize: "14px"
             }}>
               <span>New here?</span>
-              <a href="#signup" style={{ color: "#7dd3fc", textDecoration: "none", fontWeight: 700 }}>
+              <a href="#signup" onClick={handleSignupOpen} style={{ color: "#7dd3fc", textDecoration: "none", fontWeight: 700 }}>
                 Sign Up / Register
               </a>
             </div>
@@ -577,6 +667,147 @@ function LoginPage({ onLoginSuccess }) {
               {popupMessage}
             </div>
           </div>
+        </div>
+      )}
+
+      {showSignupModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 5000,
+          background: "rgba(2, 8, 19, 0.72)",
+          display: "grid",
+          placeItems: "center",
+          padding: "24px"
+        }}>
+          <form
+            onSubmit={handleSignupSubmit}
+            style={{
+              width: "min(460px, 100%)",
+              padding: "28px",
+              borderRadius: "24px",
+              background: "rgba(8, 18, 31, 0.98)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#fff",
+              boxShadow: "0 30px 70px rgba(0,0,0,0.45)"
+            }}
+          >
+            <div style={{ fontSize: "22px", fontWeight: 800 }}>Create account</div>
+            <div style={{ color: "rgba(237,244,251,0.74)", marginTop: "6px" }}>
+              Register a new account for this frontend demo.
+            </div>
+
+            <label style={{ display: "block", marginTop: "16px" }}>
+              <span style={{ display: "block", marginBottom: "8px", fontWeight: 700 }}>Name</span>
+              <input
+                value={signupName}
+                onChange={(e) => setSignupName(e.target.value)}
+                placeholder="Your name"
+                style={{
+                  width: "100%",
+                  padding: "13px 14px",
+                  borderRadius: "14px",
+                  border: signupErrors.name ? "1px solid #ff8080" : "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.96)",
+                  color: "#102033"
+                }}
+              />
+              {signupErrors.name && <div style={{ color: "#ffb3b3", fontSize: "13px", marginTop: "6px" }}>{signupErrors.name}</div>}
+            </label>
+
+            <label style={{ display: "block", marginTop: "14px" }}>
+              <span style={{ display: "block", marginBottom: "8px", fontWeight: 700 }}>Email</span>
+              <input
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                style={{
+                  width: "100%",
+                  padding: "13px 14px",
+                  borderRadius: "14px",
+                  border: signupErrors.email ? "1px solid #ff8080" : "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.96)",
+                  color: "#102033"
+                }}
+              />
+              {signupErrors.email && <div style={{ color: "#ffb3b3", fontSize: "13px", marginTop: "6px" }}>{signupErrors.email}</div>}
+            </label>
+
+            <label style={{ display: "block", marginTop: "14px" }}>
+              <span style={{ display: "block", marginBottom: "8px", fontWeight: 700 }}>Password</span>
+              <input
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
+                type="password"
+                placeholder="Create password"
+                autoComplete="new-password"
+                style={{
+                  width: "100%",
+                  padding: "13px 14px",
+                  borderRadius: "14px",
+                  border: signupErrors.password ? "1px solid #ff8080" : "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.96)",
+                  color: "#102033"
+                }}
+              />
+              {signupErrors.password && <div style={{ color: "#ffb3b3", fontSize: "13px", marginTop: "6px" }}>{signupErrors.password}</div>}
+            </label>
+
+            <label style={{ display: "block", marginTop: "14px" }}>
+              <span style={{ display: "block", marginBottom: "8px", fontWeight: 700 }}>Confirm Password</span>
+              <input
+                value={signupConfirmPassword}
+                onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                type="password"
+                placeholder="Repeat password"
+                autoComplete="new-password"
+                style={{
+                  width: "100%",
+                  padding: "13px 14px",
+                  borderRadius: "14px",
+                  border: signupErrors.confirm ? "1px solid #ff8080" : "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.96)",
+                  color: "#102033"
+                }}
+              />
+              {signupErrors.confirm && <div style={{ color: "#ffb3b3", fontSize: "13px", marginTop: "6px" }}>{signupErrors.confirm}</div>}
+            </label>
+
+            <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+              <button
+                type="button"
+                onClick={() => setShowSignupModal(false)}
+                style={{
+                  flex: 1,
+                  padding: "13px 14px",
+                  borderRadius: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: "rgba(255,255,255,0.08)",
+                  color: "#fff",
+                  fontWeight: 800
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  flex: 1,
+                  padding: "13px 14px",
+                  borderRadius: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: "linear-gradient(135deg, #27ae60, #2ecc71)",
+                  color: "#fff",
+                  fontWeight: 800
+                }}
+              >
+                Register
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
