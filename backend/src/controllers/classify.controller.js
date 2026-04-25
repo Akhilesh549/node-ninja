@@ -13,8 +13,13 @@ const classifyWaste = async (req, res, next) => {
     await addHistory({
       category: result.category,
       confidence: result.confidence,
+      recyclable: result.recyclable,
+      bin: result.bin,
+      points: result.points,
+      carbonCredits: result.carbonCredits,
       tip: result.tip,
-      filename: result.filename
+      filename: result.filename,
+      detectedItems: result.detectedItems || []
     });
 
     return res.status(200).json(result);

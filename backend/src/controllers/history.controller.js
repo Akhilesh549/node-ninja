@@ -1,11 +1,8 @@
-const { get, ref, push, set } = require('../config/firebase');
+const { database, get, ref, push, set, isFirebaseConfigured } = require('../config/firebase');
 
 const getHistory = async (req, res) => {
   try {
-    // Check if Firebase is configured with real credentials
-    const dbUrl = process.env.FIREBASE_DATABASE_URL;
-    if (!dbUrl || dbUrl.includes('your-project')) {
-      // Return mock data if Firebase not configured
+    if (!isFirebaseConfigured()) {
       return res.status(200).json({ 
         items: [], 
         total: 0,
@@ -24,7 +21,21 @@ const getHistory = async (req, res) => {
     const items = Object.entries(data).map(([id, value]) => ({
       id,
       ...value
-    }));
+    })).map((item) => {
+      const category = String(item.category || '').toLowerCase();
+      const recyclable = typeof item.recyclable === 'boolean'
+        ? item.recyclable
+        : ['plastic', 'metal', 'glass'].includes(category);
+
+      return {
+        ...item,
+        category: item.category || 'Organic',
+        recyclable,
+        bin: item.bin || (recyclable ? 'recyclable' : 'organic'),
+        points: Number(item.points || 0),
+        carbonCredits: Number(item.carbonCredits || 0)
+      };
+    });
     
     // Sort by date descending
     items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -41,12 +52,18 @@ const getHistory = async (req, res) => {
 
 const addHistory = async (classification) => {
   try {
+    if (!isFirebaseConfigured()) {
+      return null;
+    }
+
     const historyRef = ref(database, 'classifications');
     const newRef = push(historyRef);
-    await set(newRef, {
+    const record = {
       ...classification,
       createdAt: new Date().toISOString()
-    });
+    };
+
+    await set(newRef, record);
     return newRef.key;
   } catch (error) {
     console.error('Error adding history:', error);

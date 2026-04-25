@@ -12,9 +12,37 @@ const firebaseConfig = {
   appId: process.env.FIREBASE_APP_ID || "1:123456789:web:abc123"
 };
 
+const isFirebaseConfigured = () => {
+  const requiredValues = [
+    process.env.FIREBASE_API_KEY,
+    process.env.FIREBASE_AUTH_DOMAIN,
+    process.env.FIREBASE_DATABASE_URL,
+    process.env.FIREBASE_PROJECT_ID,
+    process.env.FIREBASE_STORAGE_BUCKET,
+    process.env.FIREBASE_APP_ID
+  ];
+
+  return requiredValues.every((value) => {
+    return value && !String(value).includes('your-') && !String(value).includes('abc123');
+  });
+};
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const storage = getStorage(app);
 
-module.exports = { app, database, ref, push, set, get, onValue, storage, storageRef, uploadBytes, getDownloadURL };
+module.exports = {
+  app,
+  database,
+  ref,
+  push,
+  set,
+  get,
+  onValue,
+  storage,
+  storageRef,
+  uploadBytes,
+  getDownloadURL,
+  isFirebaseConfigured
+};
