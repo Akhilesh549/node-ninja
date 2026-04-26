@@ -1,139 +1,88 @@
-
 # Waste Segregation using Computer Vision
 
 ## Problem Statement
 
 **Problem:**
-Improper waste segregation leads to environmental pollution and inefficient recycling processes.
+Improper waste segregation leads to environmental pollution, lower recycling efficiency, and increased landfill waste.
 
 **Challenge:**
-- Develop a system that:
-    - Uses image input (camera/upload)
-    - Classifies waste into categories (plastic, organic, metal, etc.)
-    - Suggests appropriate disposal methods
+Build a system that:
+- Accepts waste images from camera or upload
+- Classifies waste into categories like plastic, paper, glass, metal, e-waste, organic, and trash
+- Suggests the correct disposal method
+- Tracks scan history and statistics
 
 **Goal:**
-Promote proper waste management and support smart city initiatives.
+Promote proper waste management and support smart city and sustainability initiatives.
 
-# Node Ninja - Waste Classification ML Project
+---
 
-A machine learning project for classifying waste into four categories: **Metal**, **Plastic**, **Organic**, and **Paper/Cardboard**.
+# Node Ninja - Waste Classification Project
+
+Node Ninja is a waste segregation application that uses computer vision and machine learning to classify waste items from images and guide users on proper disposal.
+
+It includes:
+- A React frontend dashboard
+- A Node.js backend API
+- A Flask-based ML prediction service powered by TensorFlow
+- A trained image classification model
+
+## Tech Stack
+
+### Frontend
+- React
+- Vite
+- Recharts
+- JavaScript
+
+### Backend
+- Node.js
+- Express
+- Multer
+- CORS
+- Firebase SDK
+
+### ML Service
+- Python
+- Flask
+- TensorFlow
+- OpenCV
+- NumPy
+- h5py
+
+### Storage
+- Firebase when configured
+- Local JSON fallback when Firebase is not available
+
+---
 
 ## Project Structure
 
-```
+```text
 node-ninja/
-├── README.md                 # This file
-├── requirements.txt          # Python dependencies
-├── train.py                  # Training script
-├── dataset_raw/              # Raw dataset (source)
-│   ├── cardboard/
-│   ├── metal/
-│   ├── paper/
-│   └── plastic/
-├── dataset/                  # Processed dataset (created after preprocessing)
-│   ├── train/
-│   │   ├── metal/
-│   │   ├── organic/          # paper + cardboard combined
-│   │   └── plastic/
-│   └── val/
-│       ├── metal/
-│       ├── organic/          # paper + cardboard combined
-│       └── plastic/
-└── src/
-    └── preprocess.py         # Data preprocessing script
-```
-
-## Setup Instructions
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Prepare Raw Dataset
-Place your waste images in the `dataset_raw/` folder organized by category:
-- `dataset_raw/metal/` - Metal waste images
-- `dataset_raw/plastic/` - Plastic waste images
-- `dataset_raw/paper/` - Paper waste images
-- `dataset_raw/cardboard/` - Cardboard waste images
-
-Supported formats: `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`
-
-### 3. Preprocess Dataset
-The preprocessing script will:
-- Split data into 80% train, 20% validation
-- Combine `paper` and `cardboard` into `organic` category
-- Organize data into the `dataset/` folder structure
-
-```bash
-python src/preprocess.py
-```
-
-Expected output:
-```
-✅ Dataset preprocessing completed! (XXXX images processed)
-Output directory: c:\path\to\node-ninja\dataset
-```
-
-### 4. Train the Model
-```bash
-python train.py
-```
-
-The model will:
-- Use ResNet50 pretrained on ImageNet
-- Train for 20 epochs with Adam optimizer
-- Save weights to `model_weights.pth`
-
-## Class Mapping
-
-| Raw Dataset | Processed Dataset | Count |
-|-------------|------------------|-------|
-| `cardboard` | `organic`        | -     |
-| `metal`     | `metal`          | -     |
-| `paper`     | `organic`        | -     |
-| `plastic`   | `plastic`        | -     |
-
-## Key Changes Made
-
-✅ **Fixed preprocess.py:**
-- Changed to absolute paths using `Path` module (no more relative path errors)
-- Added validation for missing folders and images
-- Filter only image files (ignore other formats)
-- Added error handling for file operations
-- Improved console output with status indicators
-- Image count tracking
-
-✅ **Created train.py:**
-- ResNet50 based model with transfer learning
-- Data augmentation for robust training
-- Validation during training
-- Model checkpoint saving
-
-✅ **Updated requirements.txt:**
-- Added all necessary dependencies (PyTorch, scikit-learn, OpenCV, Pillow)
-
-## Troubleshooting
-
-**Error: "Dataset path not found"**
-- Ensure `dataset_raw/` folder exists in the project root
-- Verify folders contain image files
-
-**Error: "No images found"**
-- Check that image files have proper extensions (.jpg, .png, etc.)
-- Ensure image files are not corrupted
-
-**GPU not available?**
-- The script automatically falls back to CPU
-- GPU training is recommended for faster processing (NVIDIA CUDA required)
-
-## Next Steps
-
-1. Add more preprocessing features (image resizing, normalization)
-2. Implement model evaluation metrics
-3. Add prediction script for inference
-4. Deploy model as API/web service
-
----
-**Created for Node Ninja Hackathon**
+├── backend/
+│   ├── app.py
+│   ├── src/
+│   │   ├── app.js
+│   │   ├── server.js
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   └── services/
+│   ├── package.json
+│   └── README.md
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── LoginPage.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   └── vite.config.js
+├── models/
+│   └── final_waste_classifier.h5
+├── special_dataset/
+├── train_special.py
+├── requirements.txt
+└── README.md
