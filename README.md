@@ -1,3 +1,20 @@
+
+# Waste Segregation using Computer Vision
+
+## Problem Statement
+
+**Problem:**
+Improper waste segregation leads to environmental pollution and inefficient recycling processes.
+
+**Challenge:**
+- Develop a system that:
+    - Uses image input (camera/upload)
+    - Classifies waste into categories (plastic, organic, metal, etc.)
+    - Suggests appropriate disposal methods
+
+**Goal:**
+Promote proper waste management and support smart city initiatives.
+
 # Node Ninja - Waste Classification ML Project
 
 A machine learning project for classifying waste into four categories: **Metal**, **Plastic**, **Organic**, and **Paper/Cardboard**.
